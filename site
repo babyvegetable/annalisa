@@ -1,0 +1,340 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Maximize2, Minus, X, Folder, Sparkles, Coffee, BookOpen, PenTool, ExternalLink } from 'lucide-react';
+
+// Add head metadata with favicon
+const head = document.head;
+const favicon = document.createElement('link');
+favicon.rel = 'icon';
+favicon.href = `data:image/svg+xml,${encodeURIComponent(`
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <!-- Typewriter body -->
+    <rect x="10" y="40" width="80" height="40" fill="#78350f"/>
+    <rect x="15" y="35" width="70" height="10" fill="#92400e"/>
+    <!-- Paper -->
+    <rect x="20" y="20" width="60" height="30" fill="#fef3c7"/>
+    <!-- Keys -->
+    <circle cx="30" cy="50" r="3" fill="#fbbf24"/>
+    <circle cx="40" cy="50" r="3" fill="#fbbf24"/>
+    <circle cx="50" cy="50" r="3" fill="#fbbf24"/>
+    <circle cx="60" cy="50" r="3" fill="#fbbf24"/>
+    <circle cx="70" cy="50" r="3" fill="#fbbf24"/>
+    <!-- Roller -->
+    <rect x="25" y="30" width="50" height="5" fill="#92400e"/>
+  </svg>
+`)}`;
+head.appendChild(favicon);
+
+export default function WindowsPortfolio() {
+  const [activeWindow, setActiveWindow] = useState(null);
+  const [isMaximized, setIsMaximized] = useState(false);
+  const [isStartMenuOpen, setIsStartMenuOpen] = useState(false);
+
+  // Heart cursor
+  const cursorSVG = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24">
+      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" 
+            fill="#78350f" stroke="#4a2b0f" stroke-width="1"/>
+      <text x="12" y="14" 
+            font-size="8" 
+            fill="#fbbf24" 
+            text-anchor="middle" 
+            font-family="Arial, sans-serif"
+            font-weight="bold">A</text>
+    </svg>
+  `;
+
+  // Sparkle Trail Component
+  const SparkleTrail = () => {
+    const [sparkles, setSparkles] = useState([]);
+    const lastSparkleTime = useRef(0);
+    const lastPosition = useRef({ x: 0, y: 0 });
+
+    useEffect(() => {
+      const handleMouseMove = (e) => {
+        const now = Date.now();
+        if (now - lastSparkleTime.current < 20) return; // Faster sparkle creation
+        lastSparkleTime.current = now;
+
+        // Calculate movement speed
+        const dx = e.clientX - lastPosition.current.x;
+        const dy = e.clientY - lastPosition.current.y;
+        const speed = Math.sqrt(dx * dx + dy * dy);
+        
+        // Create more sparkles when moving faster
+        const numSparkles = Math.min(Math.floor(speed / 5) + 1, 5);
+        
+        // Create sparkles along the movement path
+        const newSparkles = Array.from({ length: numSparkles }, (_, i) => {
+          const ratio = i / numSparkles;
+          return {
+            id: Math.random(),
+            x: lastPosition.current.x + dx * ratio,
+            y: lastPosition.current.y + dy * ratio,
+            size: Math.random() * 4 + 2, // Smaller sparkles
+            // Bright pink with slight variations
+            color: `rgba(255, ${105 + Math.random() * 20}, ${180 + Math.random() * 20}, ${0.8 + Math.random() * 0.2})`,
+            opacity: 0.9,
+            duration: 400 + Math.random() * 200, // Faster animation
+            angle: Math.random() * 360,
+            speed: speed
+          };
+        });
+
+        lastPosition.current = { x: e.clientX, y: e.clientY };
+        setSparkles(current => [...current, ...newSparkles]);
+
+        // Remove sparkles after animation
+        setTimeout(() => {
+          setSparkles(current => current.filter(s => !newSparkles.includes(s)));
+        }, 600);
+      };
+
+      window.addEventListener('mousemove', handleMouseMove);
+      return () => window.removeEventListener('mousemove', handleMouseMove);
+    }, []);
+
+    return (
+      <div className="fixed inset-0 pointer-events-none z-50">
+        {sparkles.map(sparkle => (
+          <div
+            key={sparkle.id}
+            className="absolute"
+            style={{
+              left: sparkle.x,
+              top: sparkle.y,
+              width: sparkle.size,
+              height: sparkle.size,
+              backgroundColor: sparkle.color,
+              borderRadius: '50%',
+              opacity: sparkle.opacity,
+              transform: `translate(-50%, -50%) rotate(${sparkle.angle}deg)`,
+              animation: `sparkle-fade-${sparkle.id} ${sparkle.duration}ms ease-out forwards`,
+              boxShadow: `
+                0 0 ${sparkle.size * 2}px ${sparkle.color},
+                0 0 ${sparkle.size}px rgba(255, 255, 255, 0.8)
+              `,
+              filter: 'blur(0.5px)'
+            }}
+          />
+        ))}
+        <style>
+          {sparkles.map(sparkle => `
+            @keyframes sparkle-fade-${sparkle.id} {
+              0% {
+                transform: translate(-50%, -50%) rotate(${sparkle.angle}deg) scale(1);
+                opacity: ${sparkle.opacity};
+              }
+              50% {
+                opacity: ${sparkle.opacity * 0.7};
+              }
+              100% {
+                transform: translate(-50%, ${sparkle.speed > 10 ? '-100%' : '-50%'}) 
+                          rotate(${sparkle.angle + 360}deg) 
+                          scale(${sparkle.speed > 10 ? 0 : 0.2});
+                opacity: 0;
+              }
+            }
+          `).join('\n')}
+        </style>
+      </div>
+    );
+  };
+
+  const folders = [
+    { id: 'about', title: 'About Me ✨', content: (
+      <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50">
+        <div className="flex flex-col md:flex-row gap-6 items-start">
+          <img 
+            src="/api/placeholder/400/320"
+            alt="Annalisa Garofalo" 
+            className="w-64 rounded-lg shadow-md mb-4 md:mb-0"
+          />
+          <div>
+            <h2 className="text-xl font-bold mb-4 text-amber-800">Annalisa Garofalo</h2>
+            <div className="space-y-4 text-amber-900">
+              <p>Hi, I'm Annalisa – writer, storyteller, and full-time dog pillow.</p>
+              <p>I graduated from NYU in 2020 with a degree, but more importantly, with the realization that writing was the only thing I really wanted to do. Since then, I've been crafting stories from a desk perpetually covered in post-its and coffee rings, while Jules—my rescue pitbull—snoozes like she's paying rent.</p>
+              <p>In 2019, the Bread Loaf Writers' Conference welcomed me and my manuscript, which explores the messy, beautiful ways love transforms us—even when it can't save us. You can read more about it in the "Novel" section.</p>
+              <p>I write about the bonds that break us open and the impossible choices that shape who we become. If you're a literary agent, feel free to click around and let me know if anything catches your eye (or if you just want to talk about pitbulls, grief, and the stories that linger long after the last page).</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )},
+    { id: 'poetry', title: 'Poetry Collection 📝', content: (
+      <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50">
+        <h2 className="text-xl font-bold mb-4 text-amber-800">Selected Poems</h2>
+        <ul className="space-y-2">
+          <li 
+            onClick={() => window.open('https://annalisagarofalo.medium.com/i-went-to-a-porn-party-in-germany-966183a6b1e2', '_blank')}
+            className="cursor-pointer hover:bg-amber-100 p-2 rounded transition-all duration-200 text-amber-900 flex items-center justify-between group"
+          >
+            "I Went To A Porn Party in Germany" ✨
+            <ExternalLink size={14} className="text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity"/>
+          </li>
+          <li 
+            onClick={() => window.open('https://annalisagarofalo.medium.com/the-hills-oakland-584a2b255bec', '_blank')}
+            className="cursor-pointer hover:bg-amber-100 p-2 rounded transition-all duration-200 text-amber-900 flex items-center justify-between group"
+          >
+            "The Hills, Oakland" ✨
+            <ExternalLink size={14} className="text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity"/>
+          </li>
+          <li 
+            onClick={() => window.open('https://annalisagarofalo.medium.com/dresden-43342a40464c', '_blank')}
+            className="cursor-pointer hover:bg-amber-100 p-2 rounded transition-all duration-200 text-amber-900 flex items-center justify-between group"
+          >
+            "Dresden" ✨
+            <ExternalLink size={14} className="text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity"/>
+          </li>
+        </ul>
+      </div>
+    )},
+    { id: 'stories', title: 'Short Stories 📚', content: (
+      <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50">
+        <h2 className="text-xl font-bold mb-4 text-amber-800">Short Fiction</h2>
+        <ul className="space-y-2">
+          <li 
+            onClick={() => window.open('https://annalisagarofalo.medium.com/the-length-of-oak-nestled-too-closely-between-jack-and-his-wife-was-no-more-supple-than-the-ad2fa18d433a', '_blank')}
+            className="cursor-pointer hover:bg-amber-100 p-2 rounded transition-all duration-200 text-amber-900 flex items-center justify-between group"
+          >
+            "Valentine's Day" ✨
+            <ExternalLink size={14} className="text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity"/>
+          </li>
+          <li 
+            onClick={() => window.open('https://annalisagarofalo.medium.com/esjan-b78545207e43', '_blank')}
+            className="cursor-pointer hover:bg-amber-100 p-2 rounded transition-all duration-200 text-amber-900 flex items-center justify-between group"
+          >
+            "Esjan" ✨
+            <ExternalLink size={14} className="text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity"/>
+          </li>
+        </ul>
+      </div>
+    )},
+    { id: 'novel', title: 'Novel Excerpt 📖', content: (
+      <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50">
+        <h2 className="text-xl font-bold mb-4 text-amber-800">The Typist Who Changed My Life</h2>
+        <p className="mb-4 text-amber-900 italic">When a cynical novelist with six months to live hires an irrepressibly optimistic young typist to help complete his memoir, their unlikely bond forces him to confront an impossible choice: open his heart to love knowing he'll leave her to grieve, or push her away to spare her the pain of his inevitable death.</p>
+        <p className="text-amber-900">Full manuscript and synopsis available upon request. ✨</p>
+      </div>
+    )},
+    { id: 'contact', title: 'Let\'s Connect! 💌', content: (
+      <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50">
+        <h2 className="text-xl font-bold mb-4 text-amber-800">Get in Touch</h2>
+        <p className="mb-4 text-amber-900">Email: annalisamariegarofalo@gmail.com ✨</p>
+        <p className="text-amber-900">Literary agents, let's make magic happen! Additional materials available upon request. 💫</p>
+      </div>
+    )}
+  ];
+
+  const startMenuItems = [
+    { icon: <Coffee size={16} />, label: "Writing Playlist", subtext: "Music to write to", url: "https://open.spotify.com/playlist/2BMRdcrsBoS445HEso8xyu?si=bf2e1990ba4a4fec" },
+    { icon: <BookOpen size={16} />, label: "Reading List", subtext: "Books that inspire me", url: "https://www.goodreads.com/review/list/YOUR_ID?shelf=favorites" },
+    { icon: <PenTool size={16} />, label: "Medium", subtext: "Read my articles", url: "https://annalisagarofalo.medium.com/" }
+  ];
+
+  const Window = ({ folder }) => (
+    <div 
+      className={`absolute bg-white border border-amber-200 shadow-lg rounded-lg overflow-hidden ${
+        isMaximized ? 'w-full h-full top-0 left-0' : 'w-96 min-h-64 max-h-[80vh]'
+      } ${!isMaximized && 'top-20 left-20'}`}
+    >
+      <div className="bg-gradient-to-r from-amber-900 to-amber-700 text-white p-2 flex justify-between items-center">
+        <span className="flex items-center gap-2">
+          <Sparkles size={16} className="animate-pulse text-amber-300" />
+          {folder.title}
+        </span>
+        <div className="flex space-x-2">
+          <button onClick={() => {}} className="hover:bg-white hover:bg-opacity-20 rounded p-1 transition-colors">
+            <Minus size={14} />
+          </button>
+          <button onClick={() => setIsMaximized(!isMaximized)} className="hover:bg-white hover:bg-opacity-20 rounded p-1 transition-colors">
+            <Maximize2 size={14} />
+          </button>
+          <button 
+            onClick={() => setActiveWindow(null)} 
+            className="hover:bg-white hover:bg-opacity-20 rounded p-1 transition-colors"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      </div>
+      <div className="h-full overflow-y-auto">
+        {folder.content}
+      </div>
+    </div>
+  );
+
+  return (
+    <div 
+      className="min-h-screen relative overflow-hidden"
+      style={{
+        cursor: `url('data:image/svg+xml;base64,${btoa(cursorSVG)}') 12 12, auto`,
+        backgroundColor: '#fdf6f1',
+        backgroundImage: `
+          linear-gradient(45deg, #f3d5c0 2px, transparent 2px),
+          linear-gradient(-45deg, #f3d5c0 2px, transparent 2px)
+        `,
+        backgroundSize: '30px 30px'
+      }}
+    >
+      <div className="p-4 min-h-screen pb-16">
+        <div className="grid grid-cols-3 gap-4">
+          {folders.map((folder) => (
+            <button
+              key={folder.id}
+              onClick={() => setActiveWindow(folder)}
+              className="flex flex-col items-center p-3 hover:bg-black hover:bg-opacity-5 rounded-lg transition-all duration-200 transform hover:scale-105"
+            >
+              <div className="relative">
+                <Folder className="text-amber-700 mb-1" size={32} />
+                <Sparkles className="absolute -top-1 -right-1 text-amber-400 animate-pulse" size={16} />
+              </div>
+              <span className="text-amber-900 text-sm font-medium drop-shadow-sm">{folder.title}</span>
+            </button>
+          ))}
+        </div>
+
+        {activeWindow && <Window folder={activeWindow} />}
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-amber-900 to-amber-700 h-12 flex items-center px-4 shadow-lg">
+        <button 
+          onClick={() => setIsStartMenuOpen(!isStartMenuOpen)}
+          className="flex items-center gap-2 bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-full text-white transition-colors transform hover:scale-105 shadow-lg border border-white border-opacity-20 animate-pulse hover:animate-none"
+        >
+          <PenTool size={16} className="animate-bounce" />
+          <span className="font-medium">Click Me For More!</span>
+        </button>
+
+        {isStartMenuOpen && (
+          <div className="absolute bottom-12 left-0 w-64 bg-white shadow-lg rounded-t-lg overflow-hidden border border-amber-200">
+            <div className="p-4 bg-gradient-to-r from-amber-900 to-amber-700 text-white">
+              <h3 className="text-lg font-bold">Annalisa Garofalo</h3>
+              <p className="text-sm">Writer & Creative</p>
+            </div>
+            <div className="p-2">
+              {startMenuItems.map((item, index) => (
+                <button
+                  key={index}
+                  className="w-full flex items-center gap-3 p-2 hover:bg-amber-50 rounded transition-colors"
+                  onClick={() => {
+                    if (item.url) window.open(item.url, '_blank');
+                    if (item.action) item.action();
+                    setIsStartMenuOpen(false);
+                  }}
+                >
+                  <div className="text-amber-700">{item.icon}</div>
+                  <div className="text-left flex-1">
+                    <div className="text-sm font-medium text-amber-900">{item.label}</div>
+                    <div className="text-xs text-amber-700">{item.subtext}</div>
+                  </div>
+                  {item.url && <ExternalLink size={12} className="text-amber-400" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
